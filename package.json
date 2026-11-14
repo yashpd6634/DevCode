@@ -4,5 +4,8 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "dev:cli": "bun run --watch packages/cli/src/index.tsx"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }
