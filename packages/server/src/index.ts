@@ -3,12 +3,13 @@ import { HTTPException } from "hono/http-exception";
 import * as Sentry from "@sentry/hono/bun";
 import sessions from "./routes/sessions";
 import { sentry } from "@sentry/hono/bun";
+import chat from "./routes/chat";
 
 const app = new Hono();
 
 app.use(
   sentry(app, {
-    dsn: "https://d4e016d890d04c709eaa6264c9984ee5@o4512430059225088.ingest.us.sentry.io/4512430071939072",
+    dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
   }),
 );
@@ -45,11 +46,11 @@ app.onError((error, c) => {
     method: c.req.method,
     message: error instanceof Error ? error.message : "Unknown error",
   });
-  
+
   return c.json({ error: "Internal server error" }, 500);
 });
 
-const routes = app.route("/sessions", sessions);
+const routes = app.route("/sessions", sessions).route("/chat", chat);
 
 export type AppType = typeof routes;
 // idleTimeout must be high, otherwise LLM tool calls might not complete
