@@ -1,12 +1,13 @@
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import {
   findSupportedChatModel,
   type SupportedChatModel,
   type SupportedChatModelId,
   type SupportedProvider,
 } from "@nightcode/shared";
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+import type { ProviderOptions } from "@ai-sdk/provider-utils";
 import type { LanguageModel } from "ai";
 
 type AnthropicModelId = Extract<
@@ -14,13 +15,69 @@ type AnthropicModelId = Extract<
   { provider: "anthropic" }
 >["id"];
 type OpenAIModelId = Extract<SupportedChatModel, { provider: "openai" }>["id"];
-type GoogleModelId = Extract<SupportedChatModel, { provider: "google" }>["id"];
+type GeminiModelId = Extract<SupportedChatModel, { provider: "google" }>["id"];
 
 export type ResolvedModel = {
   model: LanguageModel;
   provider: SupportedProvider;
   modelId: SupportedChatModelId;
+  providerOptions?: ProviderOptions;
 };
+
+const ANTHROPIC_PROVIDER_OPTIONS: Partial<
+  Record<AnthropicModelId, ProviderOptions>
+> = {
+  "claude-opus-4-6": {
+    anthropic: {
+      thinking: {
+        type: "enabled",
+        budgetTokens: 10000,
+      },
+    },
+  },
+  "claude-sonnet-4-6": {
+    anthropic: {
+      thinking: {
+        type: "enabled",
+        budgetTokens: 10000,
+      },
+    },
+  },
+};
+
+const OPENAI_PROVIDER_OPTIONS: Partial<Record<OpenAIModelId, ProviderOptions>> =
+  {
+    "gpt-5.4": {
+      openai: {
+        thinking: {
+          reasoningSummary: "detailed",
+        },
+      },
+    },
+  };
+
+// includeThoughts makes Gemini return its thought summaries, which the AI SDK
+// surfaces as `reasoning-delta` parts. Without it the model thinks silently.
+// flash-lite is left out on purpose: it does not think unless a budget is set.
+const GOOGLE_PROVIDER_OPTIONS: Partial<Record<GeminiModelId, ProviderOptions>> =
+  {
+    "gemini-2.5-pro": {
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 8192,
+          includeThoughts: true,
+        },
+      },
+    },
+    "gemini-2.5-flash": {
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 8192,
+          includeThoughts: true,
+        },
+      },
+    },
+  };
 
 function assertUnsupportedProvider(provider: never): never {
   throw new Error(`Unsupported provider: ${provider}`);
@@ -31,6 +88,7 @@ function resolveAnthropicModel(modelId: AnthropicModelId): ResolvedModel {
     model: anthropic(modelId),
     provider: "anthropic",
     modelId,
+    providerOptions: ANTHROPIC_PROVIDER_OPTIONS[modelId],
   };
 }
 
@@ -39,14 +97,16 @@ function resolveOpenAIModel(modelId: OpenAIModelId): ResolvedModel {
     model: openai(modelId),
     provider: "openai",
     modelId,
+    providerOptions: OPENAI_PROVIDER_OPTIONS[modelId],
   };
 }
 
-function resolveGoogleModel(modelId: GoogleModelId): ResolvedModel {
+function resolveGoogleModel(modelId: GeminiModelId): ResolvedModel {
   return {
     model: google(modelId),
     provider: "google",
     modelId,
+    providerOptions: GOOGLE_PROVIDER_OPTIONS[modelId],
   };
 }
 
