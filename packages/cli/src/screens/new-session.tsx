@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import { z } from "zod";
-import { DEFAULT_CHAT_MODEL_ID } from "@nightcode/shared";
 import { useNavigate, useLocation } from "react-router";
 import { SessionShell } from "../components/session-shell";
 import { UserMessage } from "../components/messages";
 import { useToast } from "../providers/toast";
 import { apiClient } from "../lib/api-client";
 import { getErrorMessage } from "../lib/http-errors";
+import { usePromptConfig } from "../providers/prompt-config";
 
 const newSessionStateSchema = z.object({
   message: z.string(),
@@ -17,6 +17,12 @@ export function NewSession() {
   const location = useLocation();
   const toast = useToast();
   const hasStartedRef = useRef(false);
+
+  // Snapshot the mode/model chosen when the message was sent. A ref (not an
+  // effect dependency) so later changes can't re-run the effect below, whose
+  // cleanup would discard the in-flight create request.
+  const { mode, model } = usePromptConfig();
+  const promptConfigRef = useRef({ mode, model });
 
   const state = useMemo(() => {
     const parsed = newSessionStateSchema.safeParse(location.state);
@@ -46,8 +52,8 @@ export function NewSession() {
             initialMessage: {
               role: "USER",
               content: state.message,
-              mode: "BUILD",
-              model: DEFAULT_CHAT_MODEL_ID,
+              mode: promptConfigRef.current.mode,
+              model: promptConfigRef.current.model,
             },
           },
         });

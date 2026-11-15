@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "../providers/theme";
+import { usePromptConfig } from "../providers/prompt-config";
+import { Mode } from "@nightcode/database/enums";
 
 // Same frames as cli-spinners' "aesthetic". We render them ourselves instead of
 // using the opentui-spinner package, which only supports @opentui/core ^0.3.x
@@ -18,7 +20,9 @@ const FRAME_INTERVAL_MS = 80;
 
 export function Spinner() {
   const { colors } = useTheme();
+  const { mode } = usePromptConfig();
   const [frame, setFrame] = useState(0);
+  const activeColor = mode === Mode.PLAN ? colors.planMode : colors.primary;
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -28,5 +32,5 @@ export function Spinner() {
     return () => clearInterval(id);
   }, []);
 
-  return <text fg={colors.primary}>{FRAMES[frame]}</text>;
+  return <text fg={activeColor}>{FRAMES[frame]}</text>;
 }

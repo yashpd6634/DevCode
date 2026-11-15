@@ -4,6 +4,7 @@ import { DialogProvider } from "../providers/dialog";
 import { KeyboardLayerProvider } from "../providers/keyboard-layer";
 import { ThemeProvider } from "../providers/theme";
 import { ThemedRoot } from "./themed-root";
+import { PromptConfigProvider } from "../providers/prompt-config";
 // import { PromptConfigProvider } from "../providers/prompt-config";
 
 export function RootLayout() {
@@ -12,11 +13,11 @@ export function RootLayout() {
       <ToastProvider>
         <KeyboardLayerProvider>
           <DialogProvider>
-            {/* <PromptConfigProvider> */}
+            <PromptConfigProvider>
               <ThemedRoot>
                 <Outlet />
               </ThemedRoot>
-            {/* </PromptConfigProvider> */}
+            </PromptConfigProvider>
           </DialogProvider>
         </KeyboardLayerProvider>
       </ToastProvider>

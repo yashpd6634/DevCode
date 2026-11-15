@@ -118,7 +118,9 @@ export function DialogSearchList<T>({
                   if (onHighlight) onHighlight(item);
                 }}
                 onMouseDown={() => onSelect(item)}
-              ></box>
+              >
+                {renderItem(item, isSelected)}
+              </box>
             );
           })}
         </scrollbox>
