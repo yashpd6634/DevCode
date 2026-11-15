@@ -70,7 +70,7 @@ export function KeyboardLayerProvider({
   );
 
   useKeyboard((key) => {
-    if (!key.ctrl || key.name !== "C") return;
+    if (!key.ctrl || key.name !== "c") return;
 
     const currentStack = stackRef.current;
     for (let i = currentStack.length - 1; i >= 0; i--) {

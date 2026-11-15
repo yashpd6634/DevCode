@@ -10,7 +10,7 @@ export function StatusBar() {
       <text attributes={TextAttributes.DIM} fg={colors.dimSeparator}>
         &rsaquo;
       </text>
-      <text>opus-4-6</text>
+      <text>gpt-5.4-nano</text>
     </box>
   );
 }

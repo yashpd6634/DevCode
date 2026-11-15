@@ -27,13 +27,13 @@ const createSessionValidator = zValidator(
   createSessionSchema,
   (result, c) => {
     if (!result.success) {
-      Sentry.logger.warn("Sessoin creation validatoin failed", {
+      Sentry.logger.warn("Session creation validation failed", {
         path: c.req.path,
         issues: result.error.issues.length,
       });
-    }
 
-    return c.json({ error: "Invalid request body" }, 400);
+      return c.json({ error: "Invalid request body" }, 400);
+    }
   },
 );
 
