@@ -3,9 +3,12 @@ import {
   AgentsDialogContent,
   ModelsDialogContent,
   SessionsDialogContent,
+  ThemeDialogContent,
 } from "../dialogs";
-import { ThemeDialogContent } from "../dialogs/theme-dialog";
 import type { Command } from "./types";
+
+import { performLogin } from "../../lib/oauth";
+import { clearAuth } from "../../lib/auth";
 
 export const COMMANDS: Command[] = [
   {
@@ -18,11 +21,11 @@ export const COMMANDS: Command[] = [
   },
   {
     name: "agents",
-    description: "Switch Agents",
+    description: "Switch agents",
     value: "/agents",
     action: (ctx) => {
       ctx.dialog.open({
-        title: "Select Mode",
+        title: "Select Agent",
         children: (
           <AgentsDialogContent
             currentMode={ctx.mode}
@@ -33,7 +36,7 @@ export const COMMANDS: Command[] = [
     },
   },
   {
-    name: "model",
+    name: "models",
     description: "Select AI model for generation",
     value: "/models",
     action: (ctx) => {
@@ -74,8 +77,20 @@ export const COMMANDS: Command[] = [
     name: "login",
     description: "Sign in with your browser",
     value: "/login",
-    action: (ctx) => {
+    action: async (ctx) => {
       ctx.toast.show({ message: "Opening browser to sign in..." });
+
+      try {
+        await performLogin();
+        ctx.toast.show({ variant: "success", message: "Signed in" });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Sign in failed or timed out";
+
+        ctx.toast.show({ variant: "error", message });
+      }
     },
   },
   {
@@ -83,6 +98,7 @@ export const COMMANDS: Command[] = [
     description: "Sign out of your account",
     value: "/logout",
     action: (ctx) => {
+      clearAuth();
       ctx.toast.show({ variant: "success", message: "Signed out" });
     },
   },
