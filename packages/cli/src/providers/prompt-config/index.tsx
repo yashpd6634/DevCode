@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import {
   DEFAULT_CHAT_MODEL_ID,
   type SupportedChatModelId,
-} from "@nightcode/shared";
-import { Mode } from "@nightcode/database/enums";
+} from "@devcode/shared";
+import { Mode } from "@devcode/database/enums";
 
 type PromptConfigContextValue = {
   mode: Mode;

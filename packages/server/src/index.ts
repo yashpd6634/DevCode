@@ -6,6 +6,7 @@ import sessions from "./routes/sessions";
 import { sentry } from "@sentry/hono/bun";
 import chat from "./routes/chat";
 import auth from "./routes/auth";
+import billing from "./routes/billing";
 
 const app = new Hono();
 
@@ -13,6 +14,11 @@ app.use(
   sentry(app, {
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
+    // Sentry's VercelAI integration wraps the AI SDK's model streams and leaves
+    // them locked, so every streamText() call fails with "The ReadableStream is
+    // locked". Remove it until the integration supports `ai` v7.
+    integrations: (defaults) =>
+      defaults.filter((integration) => integration.name !== "VercelAI"),
   }),
 );
 
@@ -55,9 +61,12 @@ app.onError((error, c) => {
 
 app.use("/sessions/*", requireAuth);
 app.use("/chat/*", requireAuth);
+app.use("/billing/checkout", requireAuth);
+app.use("/billing/portal", requireAuth);
 
 const routes = app
   .route("/auth", auth)
+  .route("/billing", billing)
   .route("/sessions", sessions)
   .route("/chat", chat);
 

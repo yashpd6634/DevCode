@@ -1,7 +1,7 @@
-import type { Mode } from "@nightcode/database/enums";
+import type { Mode } from "@devcode/database/enums";
 import type { DialogContextValue } from "../../providers/dialog";
 import type { ToastContextValue } from "../../providers/toast";
-import type { SupportedChatModelId } from "@nightcode/shared";
+import type { SupportedChatModelId } from "@devcode/shared";
 
 export type CommandContext = {
   exit: () => void;

@@ -4,11 +4,11 @@ import prettyMs from "pretty-ms";
 import type { ClientResponse } from "hono/client";
 import { apiClient } from "../lib/api-client";
 import { getErrorMessage } from "../lib/http-errors";
-import type { Mode } from "@nightcode/database/enums";
+import type { Mode } from "@devcode/database/enums";
 import {
   chatStreamEventSchema,
   type SupportedChatModelId,
-} from "@nightcode/shared";
+} from "@devcode/shared";
 
 export type ClientToolCallPart = {
   type: "tool-call";

@@ -4,7 +4,7 @@ import type {
   ClientMessagePart,
   ClientToolCallPart,
 } from "../../hooks/use-chat";
-import { Mode } from "@nightcode/database/enums";
+import { Mode } from "@devcode/database/enums";
 import { TextAttributes } from "@opentui/core";
 
 type Props = {

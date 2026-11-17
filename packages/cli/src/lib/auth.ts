@@ -12,7 +12,7 @@ type AuthData = {
   token: string;
 };
 
-const AUTH_DIR = join(homedir(), ".nightcode");
+const AUTH_DIR = join(homedir(), ".devcode");
 const AUTH_FILE = join(AUTH_DIR, "auth.json");
 
 export function getAuth(): AuthData | null {

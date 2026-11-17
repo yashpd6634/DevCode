@@ -6,7 +6,7 @@ import prettyMs from "pretty-ms";
 import {
   messagePartsSchema,
   type SupportedChatModelId,
-} from "@nightcode/shared";
+} from "@devcode/shared";
 import type { InferResponseType } from "hono/client";
 import { SessionShell } from "../components/session-shell";
 import { UserMessage, BotMessage, ErrorMessage } from "../components/messages";
@@ -16,7 +16,7 @@ import { usePromptConfig } from "../providers/prompt-config";
 import type { Message, ClientMessagePart } from "../hooks/use-chat";
 import { apiClient } from "../lib/api-client";
 import { getErrorMessage } from "../lib/http-errors";
-import { MessageStatus } from "@nightcode/database/enums";
+import { MessageStatus } from "@devcode/database/enums";
 import { useKeyboardLayer } from "../providers/keyboard-layer";
 
 type SessionData = InferResponseType<

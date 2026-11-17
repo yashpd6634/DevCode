@@ -1,4 +1,4 @@
-import type { Mode } from "@nightcode/database/enums";
+import type { Mode } from "@devcode/database/enums";
 
 type SystemPromptParams = {
   cwd: string | null;

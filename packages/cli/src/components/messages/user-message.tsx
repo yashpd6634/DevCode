@@ -1,4 +1,4 @@
-import { Mode } from "@nightcode/database/enums";
+import { Mode } from "@devcode/database/enums";
 import { EmptyBorder } from "../border";
 import { useTheme } from "../../providers/theme";
 

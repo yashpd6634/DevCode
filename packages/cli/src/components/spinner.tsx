@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "../providers/theme";
 import { usePromptConfig } from "../providers/prompt-config";
-import { Mode } from "@nightcode/database/enums";
+import { Mode } from "@devcode/database/enums";
 
 // Same frames as cli-spinners' "aesthetic". We render them ourselves instead of
 // using the opentui-spinner package, which only supports @opentui/core ^0.3.x

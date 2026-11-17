@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useDialog } from "../../providers/dialog";
 import { DialogSearchList } from "../dialog-search-list";
-import { Mode } from "@nightcode/database/enums";
+import { Mode } from "@devcode/database/enums";
 
 const AVAILABLE_MODES: Mode[] = [Mode.BUILD, Mode.PLAN];
 
