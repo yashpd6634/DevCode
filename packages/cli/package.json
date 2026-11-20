@@ -3,9 +3,13 @@
   "module": "src/index.tsx",
   "type": "module",
   "private": true,
+  "bin": {
+    "devcode": "./bin/devcode"
+  },
   "scripts": {
     "dev": "bun run --watch src/index.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "bun build src/index.tsx --outdir dist --target bun"
   },
   "devDependencies": {
     "@devcode/server": "workspace:*",

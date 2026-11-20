@@ -24,7 +24,7 @@ const app = new Hono<AuthenticatedEnv>()
     });
   })
   .get("/success", (c) =>
-    c.text("Done. You can close this tab and return to Nightcode."),
+    c.text("Done. You can close this tab and return to Devcode."),
   );
 
 export default app;
