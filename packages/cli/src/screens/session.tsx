@@ -92,6 +92,9 @@ function SessionChat({
 
   useEffect(() => {
     if (!initialPrompt || hasSubmittedInitialPromptRef.current) return;
+    // `submit` changes identity on every render, so without this flag the
+    // effect would re-send the first prompt each time the chat re-renders.
+    hasSubmittedInitialPromptRef.current = true;
     void submit({
       userText: initialPrompt.message,
       mode: initialPrompt.mode,

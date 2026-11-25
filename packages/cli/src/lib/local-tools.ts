@@ -1,5 +1,5 @@
-import { mkdir, readFile, readdir, stat, writeFile } from "fs/promises";
-import { dirname, isAbsolute, join, relative, resolve } from "path";
+import { mkdir, readFile, readdir, realpath, stat, writeFile } from "fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "path";
 import { toolInputSchemas, Mode, type ModeType } from "@devcode/shared";
 
 const MAX_FILE_SIZE = 10_000;
@@ -8,13 +8,54 @@ const MAX_MATCHES = 50;
 const MAX_OUTPUT = 20_000;
 const DEFAULT_TIMEOUT = 30_000;
 
-function resolveInsideCwd(path: string) {
+function isOutside(root: string, target: string) {
+  const rel = relative(root, target);
+  // Compare against `..` + separator so a file named "..notes" still counts
+  // as inside the project.
+  return rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel);
+}
+
+function isMissingPathError(error: unknown) {
+  return (
+    error instanceof Error && "code" in error && error.code === "ENOENT"
+  );
+}
+
+// Follows symlinks in the deepest part of `path` that exists. The missing
+// tail (for example a file writeFile is about to create) can't be a link yet,
+// so it is appended unchanged.
+async function realpathOfExisting(path: string) {
+  const missing: string[] = [];
+  let current = path;
+
+  while (true) {
+    try {
+      return join(await realpath(current), ...missing.reverse());
+    } catch (error) {
+      const parent = dirname(current);
+      if (!isMissingPathError(error) || parent === current) throw error;
+      missing.push(basename(current));
+      current = parent;
+    }
+  }
+}
+
+async function resolveInsideCwd(path: string) {
   const cwd = process.cwd();
   const resolved = resolve(cwd, path);
-  const rel = relative(cwd, resolved);
 
-  if (rel.startsWith("..") || isAbsolute(rel)) {
+  // First check the path as written, then the real location after following
+  // symlinks, so a link inside the project can't point the model outside it.
+  if (isOutside(cwd, resolved)) {
     throw new Error("Path is outside the project directory");
+  }
+
+  const [realCwd, realTarget] = await Promise.all([
+    realpath(cwd),
+    realpathOfExisting(resolved),
+  ]);
+  if (isOutside(realCwd, realTarget)) {
+    throw new Error("Path resolves outside the project directory");
   }
 
   return { cwd, resolved };
@@ -41,7 +82,7 @@ export async function executeLocalTool(
   switch (toolName) {
     case "readFile": {
       const { path } = toolInputSchemas.readFile.parse(input);
-      const { resolved } = resolveInsideCwd(path);
+      const { resolved } = await resolveInsideCwd(path);
       const content = await readFile(resolved, "utf-8");
       return content.length > MAX_FILE_SIZE
         ? {
@@ -53,7 +94,7 @@ export async function executeLocalTool(
     }
     case "listDirectory": {
       const { path } = toolInputSchemas.listDirectory.parse(input);
-      const { cwd, resolved } = resolveInsideCwd(path);
+      const { cwd, resolved } = await resolveInsideCwd(path);
       const entries = await readdir(resolved);
       const results: { name: string; type: "file" | "directory" }[] = [];
 
@@ -77,7 +118,7 @@ export async function executeLocalTool(
     }
     case "glob": {
       const { pattern, path } = toolInputSchemas.glob.parse(input);
-      const { cwd, resolved } = resolveInsideCwd(path);
+      const { cwd, resolved } = await resolveInsideCwd(path);
       const glob = new Bun.Glob(pattern);
       const files: string[] = [];
       let truncated = false;
@@ -100,7 +141,7 @@ export async function executeLocalTool(
     }
     case "grep": {
       const { pattern, path, include } = toolInputSchemas.grep.parse(input);
-      const { cwd, resolved } = resolveInsideCwd(path);
+      const { cwd, resolved } = await resolveInsideCwd(path);
       const args = [
         "-rn",
         "--color=never",
@@ -152,7 +193,7 @@ export async function executeLocalTool(
     }
     case "writeFile": {
       const { path, content } = toolInputSchemas.writeFile.parse(input);
-      const { cwd, resolved } = resolveInsideCwd(path);
+      const { cwd, resolved } = await resolveInsideCwd(path);
       await mkdir(dirname(resolved), { recursive: true });
       await writeFile(resolved, content, "utf-8");
       return {
@@ -164,7 +205,7 @@ export async function executeLocalTool(
     case "editFile": {
       const { path, oldString, newString } =
         toolInputSchemas.editFile.parse(input);
-      const { cwd, resolved } = resolveInsideCwd(path);
+      const { cwd, resolved } = await resolveInsideCwd(path);
       const content = await readFile(resolved, "utf-8");
       const occurrences = content.split(oldString).length - 1;
 
@@ -179,7 +220,7 @@ export async function executeLocalTool(
       const { command, timeout = DEFAULT_TIMEOUT } =
         toolInputSchemas.bash.parse(input);
       const proc = Bun.spawn(["bash", "-c", command], {
-        cwd: resolveInsideCwd(".").resolved,
+        cwd: process.cwd(),
         stdout: "pipe",
         stderr: "pipe",
         env: { ...process.env, TERM: "dumb" },

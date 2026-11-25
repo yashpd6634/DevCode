@@ -119,6 +119,7 @@ const app = new Hono<AuthenticatedEnv>().post(
     });
     const modelMessages = await convertToModelMessages(nextMessages, { tools });
     let completedUsage: LanguageModelUsage | null = null;
+    const requestId = crypto.randomUUID();
 
     const result = streamText({
       model: resolvedModel.model,
@@ -150,6 +151,37 @@ const app = new Hono<AuthenticatedEnv>().post(
       async onFinish(event) {
         if (event.isAborted) return;
 
+        // Bill every finished request, including ones that stop to wait for a
+        // client-side tool result. Each tool round trip is its own request
+        // that used tokens, so billing only the final one would undercharge.
+        try {
+          const usage = completedUsage ?? (await result.totalUsage);
+          const billableUsage = calculateCreditsForUsage({
+            provider: resolvedModel.provider,
+            model: resolvedModel.modelId,
+            usage,
+          });
+
+          // One assistant message spans several requests, so the message id
+          // alone is not unique. The request id keeps Polar's dedupe working
+          // for retries of this request without merging separate requests.
+          await ingestAiUsage({
+            externalCustomerId: userId,
+            eventId: `chat-request:${requestId}`,
+            credits: billableUsage.credits,
+          });
+        } catch (error) {
+          console.error("Failed to ingest Polar AI usage for chat request", {
+            error,
+            sessionId: id,
+            messageId: event.responseMessage.id,
+            requestId,
+            userId,
+          });
+        }
+
+        // Only save once the turn is complete. A saved history that ends in
+        // an unanswered tool call can't be sent to the model again.
         if (hasPendingToolCalls(event.responseMessage)) return;
 
         await db.session.update({
@@ -158,29 +190,6 @@ const app = new Hono<AuthenticatedEnv>().post(
             messages: event.messages as unknown as Prisma.InputJsonValue,
           },
         });
-
-        if (!completedUsage) return;
-
-        try {
-          const billableUsage = calculateCreditsForUsage({
-            provider: resolvedModel.provider,
-            model: resolvedModel.modelId,
-            usage: completedUsage,
-          });
-
-          await ingestAiUsage({
-            externalCustomerId: userId,
-            eventId: `chat-message:${event.responseMessage.id}`,
-            credits: billableUsage.credits,
-          });
-        } catch (error) {
-          console.error("Failed to ingest Polar AI usage for chat message", {
-            error,
-            sessionId: id,
-            messageId: event.responseMessage.id,
-            userId,
-          });
-        }
       },
       onError(error) {
         return error instanceof Error ? error.message : String(error);

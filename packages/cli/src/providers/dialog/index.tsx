@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -32,20 +33,29 @@ type DialogProviderProps = {
 
 export function DialogProvider({ children }: DialogProviderProps) {
   const [currentDialog, setCurrentDialog] = useState<DialogConfig | null>(null);
+  // State updates are async, so keep the open dialog in a ref too. That lets
+  // close() and open() know which dialog's onClose to call right away.
+  const currentDialogRef = useRef<DialogConfig | null>(null);
   const { push, pop } = useKeyboardLayer();
 
   const close = useCallback(() => {
+    const closing = currentDialogRef.current;
+    currentDialogRef.current = null;
     setCurrentDialog(null);
     pop("dialog");
+    closing?.onClose?.();
   }, [pop]);
 
   const open = useCallback(
     (config: DialogConfig) => {
+      const replaced = currentDialogRef.current;
+      currentDialogRef.current = config;
       setCurrentDialog(config);
       push("dialog", () => {
         close();
         return true;
       });
+      replaced?.onClose?.();
     },
     [push, close],
   );
