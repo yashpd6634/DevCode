@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {
   convertToModelMessages,
+  createIdGenerator,
   streamText,
   validateUIMessages,
   type InferUITools,
@@ -59,6 +60,11 @@ const submitValidator = zValidator("json", submitSchema, (result, c) => {
   if (!result.success) {
     return c.json({ error: "Invalid request body" }, 400);
   }
+});
+
+const generateAssistantMessageId = createIdGenerator({
+  prefix: "msg",
+  size: 16,
 });
 
 function hasPendingToolCalls(message: DevcodeUIMessage) {
@@ -134,6 +140,10 @@ const app = new Hono<AuthenticatedEnv>().post(
 
     return result.toUIMessageStreamResponse<DevcodeUIMessage>({
       originalMessages: nextMessages,
+      // Without this, a new assistant reply gets the id "" on the server
+      // while the client invents its own, so saved history fills up with
+      // duplicate "" ids. Generating it here sends the same id to the client.
+      generateMessageId: generateAssistantMessageId,
       messageMetadata({ part }) {
         if (part.type === "start") {
           return { mode, model };
