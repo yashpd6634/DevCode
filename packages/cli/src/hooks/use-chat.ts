@@ -8,6 +8,7 @@ import {
   type UIMessage,
 } from "ai";
 import {
+  isServerTool,
   type ModeType,
   type SupportedChatModelId,
   type ToolContracts,
@@ -90,6 +91,11 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
     messages: initialMessages,
     transport,
     onToolCall({ toolCall }) {
+      // The SDK calls this for every tool call in the stream, including ones
+      // the server runs itself. The server sends their results; running them
+      // here too would race it with an "unknown tool" error.
+      if (isServerTool(toolCall.toolName)) return;
+
       const mode = chat.messages.at(-1)?.metadata?.mode ?? "BUILD";
       const tool = toolCall.toolName as keyof ChatTools;
 

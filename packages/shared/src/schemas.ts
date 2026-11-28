@@ -46,7 +46,30 @@ export const toolInputSchemas = {
       .describe("Short description of the command"),
     timeout: z.number().optional().describe("Timeout in milliseconds"),
   }),
+  webSearch: z.object({
+    query: z
+      .string()
+      .min(1)
+      .max(400)
+      .describe("Search query, written like a search engine query"),
+    timeRange: z
+      .enum(["day", "week", "month", "year"])
+      .optional()
+      .describe("Only return results published within this recent period"),
+  }),
 } as const;
+
+/**
+ * Tools the server runs itself (they have an `execute` there). The CLI must
+ * not try to run these locally, even though it sees their tool calls.
+ */
+export const SERVER_TOOL_NAMES = ["webSearch"] as const;
+
+export type ServerToolName = (typeof SERVER_TOOL_NAMES)[number];
+
+export function isServerTool(name: string): name is ServerToolName {
+  return (SERVER_TOOL_NAMES as readonly string[]).includes(name);
+}
 
 export const readOnlyToolContracts = {
   readFile: tool({
@@ -67,6 +90,11 @@ export const readOnlyToolContracts = {
     description:
       "Search file contents with a regular expression under the current project directory.",
     inputSchema: toolInputSchemas.grep,
+  }),
+  webSearch: tool({
+    description:
+      "Search the web for current information that is not in the project, such as library docs, recent releases, error messages, or API changes. Returns titles, URLs, and short snippets.",
+    inputSchema: toolInputSchemas.webSearch,
   }),
 } as const;
 

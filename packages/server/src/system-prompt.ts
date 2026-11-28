@@ -1,5 +1,10 @@
 import type { ModeType } from "@devcode/shared";
 
+// Each search costs the user credits, so the model should only search for
+// things it can't find in the project or already know reliably.
+const WEB_SEARCH_RULE =
+  "**Search the web sparingly.** Use webSearch only for information that may have changed recently or is not in the project (new library versions, API changes, unfamiliar error messages). Don't search for things you already know or can find in the codebase. Prefer one well-written query over several similar ones, and cite the URLs you relied on.";
+
 type SystemPromptParams = {
   mode: ModeType;
 };
@@ -38,11 +43,13 @@ export function buildSystemPrompt({ mode }: SystemPromptParams): string {
     - **listDirectory** — List entries in a directory
     - **glob** — Find files matching a pattern (e.g. "**/*.ts")
     - **grep** — Search file contents with regex
+    - **webSearch** — Search the web (returns titles, URLs and short snippets)
 
     ### Rules
     1. **Be decisive.** Use glob/grep to find what's relevant, then read only those files. Don't read every file in the project.
     2. **Never re-read files you already read** in this conversation.
-    3. **Batch your tool calls.** Call multiple tools in parallel when possible (e.g. read 5 files at once, not one at a time).`);
+    3. **Batch your tool calls.** Call multiple tools in parallel when possible (e.g. read 5 files at once, not one at a time).
+    4. ${WEB_SEARCH_RULE}`);
   }
 
   if (mode === "BUILD") {
@@ -56,11 +63,13 @@ export function buildSystemPrompt({ mode }: SystemPromptParams): string {
     - **glob** — Find files matching a pattern (e.g. "**/*.ts")
     - **grep** — Search file contents with regex
     - **bash** — Run a shell command
+    - **webSearch** — Search the web (returns titles, URLs and short snippets)
     ### Rules
     1. **Be decisive.** Use glob/grep to find what's relevant, then read only those files. Don't read every file in the project.
     2. **Never re-read files you already read** in this conversation.
     3. **Batch your tool calls.** Call multiple tools in parallel when possible (e.g. read 5 files at once, not one at a time).
-    4. **Use editFile for small changes** to existing files. Only use writeFile when creating new files or rewriting most of a file.`);
+    4. **Use editFile for small changes** to existing files. Only use writeFile when creating new files or rewriting most of a file.
+    5. ${WEB_SEARCH_RULE}`);
   }
 
   return parts.join("\n");

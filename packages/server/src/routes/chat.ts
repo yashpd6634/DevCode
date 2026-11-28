@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   convertToModelMessages,
   createIdGenerator,
+  isStepCount,
   streamText,
   validateUIMessages,
   type InferUITools,
@@ -24,6 +25,12 @@ import { requireCreditsBalance } from "../middleware/require-credits-balance";
 import { calculateCreditsForUsage } from "../lib/credits";
 import { ingestAiUsage } from "../lib/polar";
 import { isSupportedChatModel, resolveChatModel } from "../lib/models";
+import { compactOldSearchResults, createChatTools } from "../tools/web-search";
+
+// Server-run tools (web search) need extra steps inside one request: search,
+// read the results, then answer or search again. The loop still stops as soon
+// as the model calls a local tool, because those have no `execute` here.
+const MAX_SERVER_STEPS = 6;
 
 type ChatMessageMetadata = {
   mode?: ModeType;
@@ -95,7 +102,7 @@ const app = new Hono<AuthenticatedEnv>().post(
     }
 
     const startTime = Date.now();
-    const tools = getToolContracts(mode);
+    const toolContracts = getToolContracts(mode);
     const resolvedModel = resolveChatModel(model);
     const previousMessages = Array.isArray(session.messages)
       ? (session.messages as unknown as DevcodeUIMessage[])
@@ -121,9 +128,17 @@ const app = new Hono<AuthenticatedEnv>().post(
 
     const nextMessages = await validateUIMessages<DevcodeUIMessage>({
       messages: mergedMessages,
-      tools,
+      tools: toolContracts,
     });
-    const modelMessages = await convertToModelMessages(nextMessages, { tools });
+    const lastMessage = nextMessages.at(-1);
+    const { tools, getSearchCredits } = createChatTools({
+      mode,
+      currentReply: lastMessage?.role === "assistant" ? lastMessage : undefined,
+    });
+    const modelMessages = await convertToModelMessages(
+      compactOldSearchResults(nextMessages),
+      { tools },
+    );
     let completedUsage: LanguageModelUsage | null = null;
     const requestId = crypto.randomUUID();
 
@@ -132,6 +147,7 @@ const app = new Hono<AuthenticatedEnv>().post(
       system: buildSystemPrompt({ mode }),
       messages: modelMessages,
       tools,
+      stopWhen: isStepCount(MAX_SERVER_STEPS),
       providerOptions: resolvedModel.providerOptions,
       onFinish(event) {
         completedUsage = event.totalUsage;
@@ -178,7 +194,8 @@ const app = new Hono<AuthenticatedEnv>().post(
           await ingestAiUsage({
             externalCustomerId: userId,
             eventId: `chat-request:${requestId}`,
-            credits: billableUsage.credits,
+            // Search fees aren't part of token usage, so add them separately.
+            credits: billableUsage.credits + getSearchCredits(),
           });
         } catch (error) {
           console.error("Failed to ingest Polar AI usage for chat request", {
